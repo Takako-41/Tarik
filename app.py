@@ -61,8 +61,8 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     for p in MA_PERIODS:
         df[f"MA{p}"] = df["Close"].rolling(p).mean()
 
-    ema12 = df["Close"].ewm(span=13, adjust=False).mean()
-    ema26 = df["Close"].ewm(span=21, adjust=False).mean()
+    ema13 = df["Close"].ewm(span=13, adjust=False).mean()
+    ema21 = df["Close"].ewm(span=21, adjust=False).mean()
     df["MACD"] = ema13 - ema21
     df["Signal"] = df["MACD"].ewm(span=8, adjust=False).mean()
     df["Hist"] = df["MACD"] - df["Signal"]
