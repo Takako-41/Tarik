@@ -56,7 +56,6 @@ def get_top5_by_volume(universe: list[str]) -> pd.DataFrame:
     out = pd.DataFrame(rows).sort_values("TL Hacim", ascending=False).reset_index(drop=True)
     return out.head(5)
 
-
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     for p in MA_PERIODS:
@@ -125,13 +124,16 @@ def render_autoscale_chart(fig, height=650):
     var chartDiv = document.getElementById('chart-div');
     Plotly.newPlot(chartDiv, figure.data, figure.layout,
         {{responsive: true, scrollZoom: true, displaylogo: false}});
-
-    function autoscaleY(eventdata) {{
+        
+function autoscaleY(eventdata) {{
         var xrange = null;
-        if (eventdata['xaxis.range[0]'] && eventdata['xaxis.range[1]']) {{
+        if (eventdata['xaxis.range[0]'] !== undefined && eventdata['xaxis.range[1]'] !== undefined) {{
             xrange = [new Date(eventdata['xaxis.range[0]']).getTime(),
                       new Date(eventdata['xaxis.range[1]']).getTime()];
-        }} else if (eventdata['xaxis.autorange']) {{
+        }} else if (eventdata['xaxis2.range[0]'] !== undefined && eventdata['xaxis2.range[1]'] !== undefined) {{
+            xrange = [new Date(eventdata['xaxis2.range[0]']).getTime(),
+                      new Date(eventdata['xaxis2.range[1]']).getTime()];
+        }} else if (eventdata['xaxis.autorange'] || eventdata['xaxis2.autorange']) {{
             Plotly.relayout(chartDiv, {{'yaxis.autorange': true, 'yaxis2.autorange': true}});
             return;
         }} else {{
