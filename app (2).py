@@ -108,7 +108,15 @@ def render_chart(ticker: str, df: pd.DataFrame, revision: int = 0, height: int =
         var ma144 = {{type: 'scatter', mode: 'lines', name: 'MA144', x: d.dates, y: d.ma144,
                       line: {{width: 1.5, color: '#b06fd6'}}, xaxis: 'x', yaxis: 'y'}};
 
-        var histColors = d.hist.map(function(v) {{ return (v === null || v >= 0) ? '#26a69a' : '#ef5350'; }});
+        var histColors = d.hist.map(function(v, i) {{
+            if (v === null || v === undefined) return 'rgba(0,0,0,0)';
+            var prev = i > 0 ? d.hist[i - 1] : null;
+            if (v >= 0) {{
+                return (prev !== null && v < prev) ? '#a5d6cf' : '#26a69a';
+            }} else {{
+                return (prev !== null && v > prev) ? '#f7b8b5' : '#ef5350';
+            }}
+        }});
         var histBar = {{type: 'bar', name: 'Histogram', x: d.dates, y: d.hist,
                         marker: {{color: histColors, opacity: 0.6}}, xaxis: 'x', yaxis: 'y2'}};
         var macdLine = {{type: 'scatter', mode: 'lines', name: 'MACD', x: d.dates, y: d.macd,
