@@ -30,6 +30,15 @@ def get_history(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
+def format_tl(value: float) -> str:
+    if value >= 1_000_000_000:
+        return f"{value/1_000_000_000:,.2f} Milyar TL"
+    elif value >= 1_000_000:
+        return f"{value/1_000_000:,.1f} Milyon TL"
+    elif value >= 1_000:
+        return f"{value/1_000:,.0f} Bin TL"
+    return f"{value:,.0f} TL"
+
 def get_top_movers(universe: list[str], n: int = 10 , lookback: int = 5) -> pd.DataFrame:
     """Evrendeki hisseleri son 'lookback' işlem günündeki YÜZDE DEĞİŞİMİNE göre sıralar (mutlak değer,
     hem en çok yükselen hem en çok düşen dahil), ilk n'i döner."""
@@ -248,7 +257,8 @@ show = top10_katilim.copy()
 show["Son Fiyat"] = show["Son Fiyat"].map(lambda x: f"{x:,.2f} TL")
 show["Değişim %"] = show["Değişim %"].map(lambda x: f"{x:+,.2f}%")
 show["Hacim (adet)"] = show["Hacim (adet)"].map(lambda x: f"{x:,.0f}")
-show = show[["Sembol", "Yön", "Son Fiyat", "Değişim %", "Hacim (adet)", "Baz Tarih", "Tarih"]]
+show["TL Hacim"] = show["TL Hacim"].map(format_tl)
+show = show[["Sembol", "Yön", "Son Fiyat", "Değişim %", "Hacim (adet)", "TL Hacim", "Baz Tarih", "Tarih"]]
 st.dataframe(show, use_container_width=True, hide_index=True)
 
 st.divider()
