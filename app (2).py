@@ -52,6 +52,7 @@ def get_top_movers(universe: list[str], n: int = 10 , lookback: int = 5) -> pd.D
                 "Son Fiyat": last["Close"],
                 "Değişim %": pct,
                 "Hacim (adet)": last["Volume"],
+                "TL Hacim": last["close"] * last["Volume"]
                 "Baz Tarih": base_date,
                 "Tarih": df.index[-1].date(),
             })
@@ -60,9 +61,12 @@ def get_top_movers(universe: list[str], n: int = 10 , lookback: int = 5) -> pd.D
     if not rows:
         return pd.DataFrame()
     out = pd.DataFrame(rows)
-    out["_abs"] = out["Değişim %"].abs()
-    out = out.sort_values("_abs", ascending=False).drop(columns="_abs").reset_index(drop=True)
-    return out.head(n)
+    half = n // 2
+    top_yukselen = out.sort_values("Değişim %", ascending=False).head(half).copy()
+    top_yukselen["Yön"] = "Yükselen"
+    top_dusen = out.sort_values("Değişim %", ascending=True).head(n - half).copy()
+    top_dusen["Yön"] = "Düşen"
+    return pd.concat([top_yukselen, top_dusen], ignore_index=True)
 
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -244,6 +248,7 @@ show = top10_katilim.copy()
 show["Son Fiyat"] = show["Son Fiyat"].map(lambda x: f"{x:,.2f} TL")
 show["Değişim %"] = show["Değişim %"].map(lambda x: f"{x:+,.2f}%")
 show["Hacim (adet)"] = show["Hacim (adet)"].map(lambda x: f"{x:,.0f}")
+show = show[["Sembol", "Yön", "Son Fiyat", "Değişim %", "Hacim (adet)", "Baz Tarih", "Tarih"]]
 st.dataframe(show, use_container_width=True, hide_index=True)
 
 st.divider()
