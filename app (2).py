@@ -30,23 +30,29 @@ def get_history(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
-def get_top_movers(universe: list[str], n: int = 10) -> pd.DataFrame:
-    """Evrendeki hisseleri son günün YÜZDE DEĞİŞİMİNE göre sıralar (mutlak değer,
+def get_top_movers(universe: list[str], n: int = 10 , lookback: int = 5) -> pd.DataFrame:
+    """Evrendeki hisseleri son 'lookback' işlem günündeki YÜZDE DEĞİŞİMİNE göre sıralar (mutlak değer,
     hem en çok yükselen hem en çok düşen dahil), ilk n'i döner."""
     rows = []
     for t in universe:
         try:
-            df = get_history(t, period="5d")
+            df = get_history(t, period="1mo")
             if df.empty or len(df) < 2:
                 continue
+            if len(df) < lookback + 1:
+                base_close = df["Close"].iloc[0]
+                base_date = df.index[0].date()
+            else:
+                base_close = df["Close"].iloc[-(lookback + 1)]
+                base_date = df.index[-(lookback + 1)].date()
             last = df.iloc[-1]
-            prev_close = df["Close"].iloc[-2]
-            pct = (last["Close"] - prev_close) / prev_close * 100
+            pct = (last["Close"] - base_close) / base_close * 100
             rows.append({
                 "Sembol": t,
                 "Son Fiyat": last["Close"],
                 "Değişim %": pct,
                 "Hacim (adet)": last["Volume"],
+                "Baz Tarih": base_date,
                 "Tarih": df.index[-1].date(),
             })
         except Exception:
@@ -233,7 +239,7 @@ if top10_katilim.empty:
     )
     st.stop()
 
-st.subheader("Bugünün en çok değişen 10 Katılım hissesi")
+st.subheader("Son 5 işlem gününde en çok değişen 10 Katılım hissesi")
 show = top10_katilim.copy()
 show["Son Fiyat"] = show["Son Fiyat"].map(lambda x: f"{x:,.2f} TL")
 show["Değişim %"] = show["Değişim %"].map(lambda x: f"{x:+,.2f}%")
