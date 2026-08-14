@@ -93,6 +93,22 @@ def render_chart(ticker: str, df: pd.DataFrame, revision: int = 0, height: int =
     (function() {{
         var d = {payload_json};
         var chartDiv = document.getElementById('chart-{ticker}');
+        // Hafta sonu ve tatil gibi işlem olmayan günleri tespit edip boşlukları kapatıyoruz
+        var haveDates = {{}};
+        d.dates.forEach(function(ds) {{ haveDates[ds] = true; }});
+        var missingDates = [];
+        if (d.dates.length > 1) {{
+            var cur = new Date(d.dates[0]);
+            var last = new Date(d.dates[d.dates.length - 1]);
+            while (cur <= last) {{
+                var ds = cur.toISOString().split('T')[0];
+                var day = cur.getUTCDay(); // 0=pazar, 6=cumartesi
+                if (day !== 0 && day !== 6 && !haveDates[ds]) {{
+                    missingDates.push(ds);
+                }}
+                cur.setUTCDate(cur.getUTCDate() + 1);
+            }}
+        }}
 
         var candle = {{
             type: 'candlestick', name: 'Fiyat',
@@ -134,7 +150,10 @@ def render_chart(ticker: str, df: pd.DataFrame, revision: int = 0, height: int =
             showlegend: true,
             legend: {{orientation: 'h', y: 1.05, x: 1, xanchor: 'right'}},
             grid: {{rows: 2, columns: 1, pattern: 'independent'}},
-            xaxis: {{domain: [0, 1], anchor: 'y', gridcolor: '#2a2e39', rangeslider: {{visible: false}}}},
+          xaxis: {{
+                domain: [0, 1], anchor: 'y', gridcolor: '#2a2e39', rangeslider: {{visible: false}},
+                rangebreaks: [{{bounds: ['sat', 'mon']}}, {{values: missingDates}}],
+            }},
             yaxis: {{domain: [0.32, 1], anchor: 'x', gridcolor: '#2a2e39', title: '{ticker}'}},
             yaxis2: {{domain: [0, 0.25], anchor: 'x', gridcolor: '#2a2e39', title: 'MACD'}},
         }};
