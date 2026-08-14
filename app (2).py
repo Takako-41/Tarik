@@ -15,11 +15,8 @@ st.set_page_config(page_title="Katılım Endeksi Panelim", layout="wide")
 # Endeks içeriği yılda 2 kez (Mayıs / Kasım) güncellenir.
 # Yeni dönemde değişiklik olursa bu listeyi güncellemek yeterli.
 # ------------------------------------------------------------------
-KATILIM_30 = [
-    "AKSA", "ALTNY", "ASELS", "BSOKE", "BIMAS", "CWENE", "CANTE", "CIMSA",
-    "DAPGM", "EKGYO", "ENJSA", "EREGL", "EUPWR", "GENIL", "GESAN", "GUBRF",
-    "GLRMK", "GRSEL", "KRDMD", "KTLEV", "KONTR", "KUYAS", "MAVI", "MPARK",
-    "OBAMS", "PASEU", "PETKM", "TUREX", "TUPRS", "YEOTK",
+KATILIM_TÜM = [
+    "AAGYO", "ACSEL", "AHGAZ", "AHSGY", "AKFYE", "AKHAN", "ALBRK", "ALBTN", "ALCTL", "ALFAS", "ALKA", "ALKIM", "ALKLC", "ALTNY", "ALVES", "ANGEN", "ARASE", "ARDYZ", "ARENA", "ARFYE", "ASELS", "ATAKP", "ATATP", "AVPGY", "AYEN", "BAHKM", "BASGZ", "BAYRK", "BEGYO", "BERA", "BESTE", "BETAE", "BIENY", "BIMAS", "BINBN", "BINHO", "BMSTL", "BORSK", "BOSSA", "BRISA", "BRLSM", "BSOKE", "BUCIM", "BURCE", "BURVA", "BYDNR", "CANTE", "CATES", "CELHA", "CEMTS", "CEMZY", "CIMSA", "CMBTN", "CVKMD", "CWENE", "DAPGM", "DARDL", "DCTTR", "DENGE", "DGATE", "DITAS", "DMSAS", "DNISI", "DOFER", "DOFRB", "DOGUB", "DYOBY", "EBEBK", "EDATA", "EDIP", "EGEPO", "EGPRO", "EGGUB", "EKSUN", "EKGYO", "ELITE", "EMPAE", "ENJSA", "EREGL", "ESCOM", "EUPWR", "EYGYO", "FADE", "FONET", "FORMT", "FORTE", "FRMPL", "FZLGY", "GEDZA", "GENIL", "GENKM", "GENTS", "GEREL", "GESAN", "GOKNR", "GOLDA", "GOLTS", "GOODY", "GMTAS", "GRSEL", "GRTHO", "GUBRF", "GUNDG", "HATSN", "HKTM", "HOROZ", "HRKET", "IHEVA", "IHLAS", "IHLGM", "IHYAY", "IMASM", "INGRM", "INTEM", "ISDMR", "IZFAS", "IZINV", "JANTS", "KARSN", "KATMR", "KBORU", "KCAER", "KIMMR", "KLSER", "KLSYN", "KNFRT", "KOCMT", "KONKA", "KONYA", "KOPOL", "KOTON", "KRDMA", "KRDMB", "KRDMD", "KRONT", "KRPLS", "KRSTL", "KRVGD", "KTLEV", "KUTPO", "KZBGY", "LKMNH", "LOGO", "LXGYO", "MAGEN", "MAKIM", "MARBL", "MAVI", "MCARD", "MEDTR", "MEGMT", "MEKAG", "MERCN", "MERKO", "MEYSU", "MNDTR", "MOBTL", "MOPAS", "MPARK", "NETAS", "NETCD", "NTGAZ", "OBASE", "OBAMS", "ONCSM", "ORGE", "OSTIM", "OZATD", "OZGYO", "OZRDN", "OZYSR", "PAGYO", "PARSN", "PASEU", "PENGD", "PENTA", "PETKM", "PKART", "PLTUR", "PNSUT", "POLHO", "PRKME", "QUAGR", "QUICK", "RALYH", "RGYAS", "RNPOL", "RUBNS", "SAFKR", "SAMAT", "SANEL", "SARKY", "SAYAS", "SDTTR", "SELEC", "SEKUR", "SELVA", "SMART", "SMRVA", "SNGYO", "SNICA", "SOHOE", "SOKE", "SRVGY", "SSAAT", "SUNTK", "SURGY", "SUWEN", "SVGYO", "TARKM", "TERA", "TEZOL", "THYAO", "TKFEN", "TKNSA", "TMPOL", "TUCLK", "TUKAS", "TUPRS", "TUREX", "TURGG", "UCAYM", "UFUK", "ULAS", "ULUSE", "USAK", "VAKKO", "VANGD", "YATAS", "YEOTK", "YIGIT", "YUNSA", "ZERGY"
 ]
 
 MA_PERIODS = [21, 55, 144]  # Fibonacci bazlı hareketli ortalamalar
@@ -33,29 +30,33 @@ def get_history(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
-def get_top5_by_volume(universe: list[str]) -> pd.DataFrame:
-    """Evrendeki hisseleri son günün TL işlem hacmine göre sıralar, ilk 5'i döner."""
+def get_top_movers(universe: list[str], n: int = 10) -> pd.DataFrame:
+    """Evrendeki hisseleri son günün YÜZDE DEĞİŞİMİNE göre sıralar (mutlak değer,
+    hem en çok yükselen hem en çok düşen dahil), ilk n'i döner."""
     rows = []
     for t in universe:
         try:
             df = get_history(t, period="5d")
-            if df.empty:
+            if df.empty or len(df) < 2:
                 continue
             last = df.iloc[-1]
-            tl_hacim = last["Close"] * last["Volume"]
+            prev_close = df["Close"].iloc[-2]
+            pct = (last["Close"] - prev_close) / prev_close * 100
             rows.append({
                 "Sembol": t,
                 "Son Fiyat": last["Close"],
+                "Değişim %": pct,
                 "Hacim (adet)": last["Volume"],
-                "TL Hacim": tl_hacim,
                 "Tarih": df.index[-1].date(),
             })
         except Exception:
             continue
     if not rows:
         return pd.DataFrame()
-    out = pd.DataFrame(rows).sort_values("TL Hacim", ascending=False).reset_index(drop=True)
-    return out.head(5)
+    out = pd.DataFrame(rows)
+    out["_abs"] = out["Değişim %"].abs()
+    out = out.sort_values("_abs", ascending=False).drop(columns="_abs").reset_index(drop=True)
+    return out.head(n)
 
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -181,14 +182,12 @@ def render_chart(ticker: str, df: pd.DataFrame, revision: int = 0, height: int =
     """
     components.html(html, height=height + 20)
 
-
-
 # ------------------------------------------------------------------
 # ARAYÜZ
 # ------------------------------------------------------------------
 st.title("📊 Katılım Endeksi Panelim")
 st.caption(
-    "BIST Katılım 30 evreni içinden günün en yüksek TL hacimli 5 hissesi · "
+    "BIST Katılım Tüm evreni içinden günün en çok değişen 10 hissesi · "
     "MACD (13,21,8) · Hareketli Ortalama 21 / 55 / 144"
 )
 
@@ -197,27 +196,27 @@ with col_a:
     if st.button("🔄 Verileri yenile"):
         st.cache_data.clear()
 
-with st.spinner("Hacim verileri çekiliyor..."):
-    top5 = get_top5_by_volume(KATILIM_30)
+with st.spinner("Veriler çekiliyor..."):
+    top10_katilim = get_top_movers(KATILIM_TÜM, n=10)
 
-if top5.empty:
+if top10_katilim.empty:
     st.error(
         "Veri çekilemedi. Yahoo Finance şu an erişilemiyor olabilir, "
         "birkaç dakika sonra tekrar deneyin."
     )
     st.stop()
 
-st.subheader("Bugünün en yüksek hacimli 5 hissesi (Katılım 30 içinden)")
-show = top5.copy()
+st.subheader("Bugünün en çok değişen 10 Katılım hissesi")
+show = top10_katilim.copy()
 show["Son Fiyat"] = show["Son Fiyat"].map(lambda x: f"{x:,.2f} TL")
+show["Değişim %"] = show["Değişim %"].map(lambda x: f"{x:+,.2f}%")
 show["Hacim (adet)"] = show["Hacim (adet)"].map(lambda x: f"{x:,.0f}")
-show["TL Hacim"] = show["TL Hacim"].map(lambda x: f"{x:,.0f} TL")
 st.dataframe(show, use_container_width=True, hide_index=True)
 
 st.divider()
 
-tabs = st.tabs(top5["Sembol"].tolist())
-for tab, ticker in zip(tabs, top5["Sembol"].tolist()):
+tabs = st.tabs(top10_katilim["Sembol"].tolist())
+for tab, ticker in zip(tabs, top10_katilim["Sembol"].tolist()):
     with tab:
         with st.spinner(f"{ticker} verisi hazırlanıyor..."):
             hist = get_history(ticker, period="2y")
@@ -234,13 +233,14 @@ for tab, ticker in zip(tabs, top5["Sembol"].tolist()):
                 st.session_state[rev_key] += 1
 
             render_chart(ticker, hist, revision=st.session_state[rev_key], height=650)
-            
+
             last_row = hist.iloc[-1]
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Son Kapanış", f"{last_row['Close']:.2f} TL")
             c2.metric("MA21", f"{last_row['MA21']:.2f}" if not np.isnan(last_row['MA21']) else "-")
             c3.metric("MA55", f"{last_row['MA55']:.2f}" if not np.isnan(last_row['MA55']) else "-")
             c4.metric("MA144", f"{last_row['MA144']:.2f}" if not np.isnan(last_row['MA144']) else "-")
+
 st.divider()
 st.caption(
     f"Son güncelleme: {datetime.now().strftime('%d.%m.%Y %H:%M')} · "
