@@ -52,7 +52,7 @@ def get_top_movers(universe: list[str], n: int = 10 , lookback: int = 5) -> pd.D
                 "Son Fiyat": last["Close"],
                 "Değişim %": pct,
                 "Hacim (adet)": last["Volume"],
-                "TL Hacim": last["close"] * last["Volume"]
+                "TL Hacim": last["Close"] * last["Volume"]
                 "Baz Tarih": base_date,
                 "Tarih": df.index[-1].date(),
             })
