@@ -256,7 +256,7 @@ KATILIM_TÜM = [  " AAGYO",
  "YKSLN",
  "YUNSA",
  "ZEDUR",
- "ZERGY",
+ "ZERGY", ]
 MA_PERIODS = [21, 55, 144]  # Fibonacci bazlı hareketli ortalamalar
 
 
