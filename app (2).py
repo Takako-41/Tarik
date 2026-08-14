@@ -25,7 +25,7 @@ MA_PERIODS = [21, 55, 144]  # Fibonacci bazlı hareketli ortalamalar
 @st.cache_data(ttl=900, show_spinner=False)
 def get_history(ticker: str, period: str = "2y") -> pd.DataFrame:
     """Tek bir hisse için günlük OHLCV verisi çeker (.IS uzantılı BIST sembolü)."""
-    df = yf.Ticker(f"{ticker}.IS").history(period=period, interval="1d")
+    df = yf.Ticker(f"{ticker}.IS").history(period=period, interval="1d", auto_adjust=False)
     return df
 
 
